@@ -1,0 +1,23 @@
+#ifndef REMOTE_CODES_H
+#define REMOTE_CODES_H
+
+// IR Remote Button Codes
+#define BTN_1 0xBA45FF00
+#define BTN_2 0xB946FF00
+#define BTN_3 0xB847FF00
+#define BTN_4 0xBB44FF00
+#define BTN_5 0xBF40FF00
+#define BTN_6 0xBC43FF00
+#define BTN_7 0xF087FF00
+#define BTN_8 0xEA15FF00
+#define BTN_9 0xF069FF00
+#define BTN_STAR 0xE916FF00
+#define BTN_0 0xE619FF00
+#define BTN_HASH 0xF20DFF00
+#define BTN_UP 0xE718FF00
+#define BTN_DOWN 0xAD52FF00
+#define BTN_LEFT 0xF708FF00
+#define BTN_RIGHT 0xA55AFF00
+#define BTN_OK 0xE31CFF00
+
+#endif

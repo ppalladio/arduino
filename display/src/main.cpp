@@ -2,15 +2,12 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <IRremote.h>
-
+#include <RemoteCodes.h> 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 #define IR_RECEIVE_PIN 15
-#define BTN_1 = 0XBA45FF00
-#define BTN_2 = 0XB946FF00
-#define BTN_3 = 0XB847FF00
-#define BTN_OK = 0XE31CFF00
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 uint32_t lastCode = 0;
@@ -46,18 +43,40 @@ void updateDisplay() {
   display.println("Last Button:");
   display.println("");
   display.setTextSize(2);
+  switch (lastCode)
+  {
+  case BTN_0:  // ✅ CORRECT
+    display.println("0 is pressed");
+    break;
   
-  if(lastCode == 0xBA45FF00) {
-    display.println("Power!");
-  } else if(lastCode == 0xBF40FF00) {
-    display.println("Custom!");
-  } else if(lastcode == 0XB946FF00) {
-    display.println("a$$")
-    } else {
+  case BTN_1:
+    display.println("1 is pressed");
+    break;
+  
+  case BTN_2:
+    display.println("2 is pressed");
+    break;
+  
+  case BTN_UP:
+    display.println("UP is pressed");
+    break;
+  
+  case BTN_DOWN:
+    display.println("DOWN is pressed");
+    break;
+  
+  case BTN_OK:
+    display.println("OK is pressed");
+    break;
+  
+  default:
+    display.print("Unknown: 0x");
     display.println(lastCode, HEX);
+    break;
   }
+   
   
-  display.setTextSize(1);
+  display.setTextSize(5);
   display.println("");
   display.print("Presses: ");
   display.println(pressCount);
