@@ -1,109 +1,119 @@
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <IRremote.h>
-#include <RemoteCodes.h> 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define IR_RECEIVE_PIN 15
+#include <WiFi.h>
+#include "config.h"
+#include "HueController.h"
+#include "RemoteHandler.h" 
+// Global instances
+HueController hue;
+RemoteHandler remote(IR_RECEIVE_PIN);
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+// Light ID storage
+int cellingId = 0;
+int deskId = 0;
+int lamp1Id = 0;
+int lamp2Id = 0;
 
-uint32_t lastCode = 0;
-int pressCount = 0;
+// ============================================================================
+// Setup Functions
+// ============================================================================
 
-void setup() {
-  Serial.begin(115200);
-  Wire.begin(21, 22);
-  
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("Display failed!");
-    while(1);
-  }
-  
-  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
-  
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println("IR Remote Ready");
-  display.println("");
-  display.println("Press any button");
-  display.display();
-  
-  Serial.println("Ready!");
+void setupWiFi() {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    
+    Serial.print("[WiFi] Connecting");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.printf("\n[WiFi] Connected: %s\n", WiFi.localIP().toString().c_str());
 }
 
-void updateDisplay() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.setTextSize(1);
-  display.println("Last Button:");
-  display.println("");
-  display.setTextSize(2);
-  switch (lastCode)
-  {
-  case BTN_0:  // ✅ CORRECT
-    display.println("0 is pressed");
-    break;
-  
-  case BTN_1:
-    display.println("1 is pressed");
-    break;
-  
-  case BTN_2:
-    display.println("2 is pressed");
-    break;
-  
-  case BTN_UP:
-    display.println("UP is pressed");
-    break;
-  
-  case BTN_DOWN:
-    display.println("DOWN is pressed");
-    break;
-  
-  case BTN_OK:
-    display.println("OK is pressed");
-    break;
-  
-  default:
-    display.print("Unknown: 0x");
-    display.println(lastCode, HEX);
-    break;
-  }
-   
-  
-  display.setTextSize(5);
-  display.println("");
-  display.print("Presses: ");
-  display.println(pressCount);
-  display.display();
+void setupHue() {
+    hue.begin();
+    
+    if (String(HUE_USERNAME) == "YOUR_HUE_USERNAME_HERE") {
+        Serial.println("\n[SETUP] First-time setup required:");
+        Serial.println("  1. Press button on Hue Bridge");
+        Serial.println("  2. Press Button 0 on remote");
+    } else {
+        hue.discoverLights();
+        Serial.println("[HUE] Ready");
+    }
+}
+
+void setupRemote() {
+    remote.begin();
+    
+    // Register button handlers
+    
+    // Button 0: Create Hue user (setup only)
+    remote.onButton0([]() {
+        Serial.println("\n[BTN 0] Creating Hue user...");
+        hue.createUser();
+    });
+    
+    // Button 1: Toggle all lights
+    remote.onButton1([]() {
+        Serial.println("[BTN 1] All lights toggle");
+        hue.toggleAllLights();
+    });
+    
+    // Button 2: Toggle Celling light
+    remote.onButton2([]() {
+        Serial.println("[BTN 2] Celling toggle");
+        hue.toggleLight(cellingId);
+    });
+    
+    // Button 3: Toggle Desk light
+    remote.onButton3([]() {
+        Serial.println("[BTN 3] Desk toggle");
+        hue.toggleLight(deskId);
+    });
+    
+    // Button 4: Toggle both Lamps
+    remote.onButton4([]() {
+        Serial.println("[BTN 4] Lamps toggle");
+        bool state = hue.getLightState(lamp1Id);
+        hue.setLight(lamp1Id, !state);
+        hue.setLight(lamp2Id, !state);
+    });
+    
+    // Button UP: Example - future use
+    remote.onButtonUp([]() {
+        Serial.println("[BTN UP] Available for future feature");
+    });
+    
+    // Button DOWN: Example - future use
+    remote.onButtonDown([]() {
+        Serial.println("[BTN DOWN] Available for future feature");
+    });
+    
+    // Button OK: Example - future use
+    remote.onButtonOk([]() {
+        Serial.println("[BTN OK] Available for future feature");
+    });
+    
+    Serial.println("[IR] Button handlers registered");
+}
+
+// ============================================================================
+// Main
+// ============================================================================
+
+void setup() {
+    Serial.begin(115200);
+    delay(500);
+    
+    Serial.println("\n=== ESP32 Smart Remote ===\n");
+    
+    setupWiFi();
+    setupHue();
+    setupRemote();
+    
+    Serial.println("\n=== Ready ===\n");
 }
 
 void loop() {
-  if (IrReceiver.decode()) {
-    uint32_t code = IrReceiver.decodedIRData.decodedRawData;
-    
-    if(code != 0) {
-      // New button press
-      lastCode = code;
-      pressCount++;
-      
-      Serial.print("Press #");
-      Serial.print(pressCount);
-      Serial.print(" - Code: ");
-      Serial.println(code, HEX);
-      
-      updateDisplay();
-    } else {
-      // Repeat code (long press)
-      Serial.print("Holding: ");
-      Serial.println(lastCode, HEX);
-    }
-    
-    IrReceiver.resume();
-  }
+    remote.handle();
+    delay(10);
 }
